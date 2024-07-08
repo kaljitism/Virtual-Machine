@@ -110,7 +110,7 @@ typedef struct {
 //}
 
 Trap vm_execute_instruction(VM *vm) {
-  if ( vm->instructionPointer < 0 || vm->instructionPointer >=
+  if ( vm->instructionPointer < 0 || (size_t) vm->instructionPointer >=
   vm->programSize )
     return TRAP_ILLEGAL_INSTRUCTION_ACCESS;
   
@@ -421,14 +421,14 @@ Instruction vm_translate_line(StringView line) {
   else if ( stringView_equal(instructionName, cstr_as_stringView
       ("plus"))) {
     line = stringView_trim_left(line);
-    return (Instruction) {.type = INSTRUCTION_DUPLICATE};
+    return (Instruction) {.type = INSTRUCTION_PLUS};
   }
   
   else if ( stringView_equal(instructionName, cstr_as_stringView
       ("jump"))) {
     line = stringView_trim_left(line);
     int operand = stringView_toInteger(stringView_trim_right(line));
-    return (Instruction) {.type = INSTRUCTION_DUPLICATE, .operand = operand};
+    return (Instruction) {.type = INSTRUCTION_JUMP, .operand = operand};
   }
   
   else {
