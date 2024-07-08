@@ -92,7 +92,6 @@ typedef struct {
   Word operand;
 } Instruction;
 
-
 typedef struct {
   Word stack[VM_STACK_CAPACITY];
   Word stackSize;
@@ -247,9 +246,7 @@ void vm_load_program_from_memory(
   vm->programSize = programSize;
 }
 
-void vm_load_program_from_file(
-    VM *vm,
-    const char *filePath) {
+void vm_load_program_from_file(VM *vm, const char *filePath) {
   FILE *file = fopen(filePath, "rb");
   if (file == NULL) {
     fprintf(
@@ -276,7 +273,7 @@ void vm_load_program_from_file(
     exit(1);
   }
   
-//  assert(currentPosition % sizeof(vm->program[0]) == 0);
+  assert(currentPosition % sizeof(vm->program[0]) == 0);
   assert((size_t) currentPosition <= VM_PROGRAM_CAPACITY * sizeof
   (vm->program[0]));
   
@@ -316,11 +313,10 @@ void vm_save_program_to_file(
   }
   
   fwrite(program, sizeof(program[0]), programSize, file);
-  
   if (ferror(file)) {
     fprintf(
         stderr,
-        "ERROR: Could not open file %s : %s\n",
+        "ERROR: Could not write to the file %s : %s\n",
         filePath, strerror(errno));
     exit(1);
   }
@@ -328,7 +324,36 @@ void vm_save_program_to_file(
   fclose(file);
 }
 
+size_t vm_translate_assembly(
+    char *sourceCode,
+    size_t sourceSize,
+    Instruction *program,
+    size_t programCapacity) {
+  while(sourceSize > 0) {
+    char *end = memchr(sourceCode, '\n', sourceSize);
+    if (end != NULL) {
+      size_t size = end - sourceCode;
+      printf("#%.*s#\n", (int) size, sourceCode);
+      sourceCode = end + 1;
+      sourceSize -= size + 1;
+    } else {
+      printf("#%.*s#", (int) sourceSize, sourceCode);
+      sourceCode = end;
+      sourceSize = 0;
+    }
+  }
+  return 0;
+}
+
 VM vm = {0};
+const char *sourceCode =
+    "push 0\n"
+    "push 1\n"
+    "duplicate 1\n"
+    "duplicate 1\n"
+    "plus\n"
+    "jump 2\n";
+
 Instruction program[] = {
     MAKE_INSTRUCTION_PUSH(0),
     MAKE_INSTRUCTION_PUSH(1),
@@ -338,7 +363,17 @@ Instruction program[] = {
     MAKE_INSTRUCTION_JUMP(2),
 };
 
-int main() {
+
+int main(void) {
+  vm.programSize = vm_translate_assembly(sourceCode,
+                        strlen(sourceCode),
+                        vm.program,
+                        VM_PROGRAM_CAPACITY);
+  
+  return 0;
+}
+
+int main2() {
   vm_load_program_from_file(&vm, "fibonacci.vm");
   vm_dump_stack(stdout, &vm);
   for(int i = 0; i < VM_EXECUTION_LIMIT && !vm.halt; ++i) {
