@@ -247,16 +247,104 @@ void vm_load_program_from_memory(
   vm->programSize = programSize;
 }
 
-
-void vm_load_program_from_file() {
+void vm_load_program_from_file(
+    VM *vm,
+    const char *filePath) {
+  FILE *file = fopen(filePath, "rb");
+  if (file == NULL) {
+    fprintf(
+        stderr,
+        "ERROR: Could not open file %s : %s\n",
+        filePath, strerror(errno));
+    exit(1);
+  }
+  
+  if (fseek(file, 0, SEEK_END) < 0) {
+    fprintf(
+        stderr,
+        "ERROR: Could not read file %s : %s\n",
+        filePath, strerror(errno));
+    exit(1);
+  }
+  
+  long currentPosition = ftell(file);
+  if (currentPosition < 0) {
+    fprintf(
+        stderr,
+        "ERROR: Could not read file %s : %s\n",
+        filePath, strerror(errno));
+    exit(1);
+  }
+  
+//  assert(currentPosition % sizeof(vm->program[0]) == 0);
+  assert((size_t) currentPosition <= VM_PROGRAM_CAPACITY * sizeof
+  (vm->program[0]));
+  
+  if (fseek(file, 0, SEEK_SET) < 0) {
+    fprintf(
+        stderr,
+        "ERROR: Could not read file %s : %s\n",
+        filePath, strerror(errno));
+    exit(1);
+  }
+  
+  vm->programSize = fread(vm->program, sizeof(vm->program[0]), currentPosition
+  / sizeof
+  (vm->program[0]), file);
+  if (ferror(file)) {
+    fprintf(
+        stderr,
+        "ERROR: Could not read file %s : %s\n",
+        filePath, strerror(errno));
+    exit(1);
+  }
+  
+  fclose(file);
 }
 
-int main() {
-  vm_load_program_from_memory(&vm, program, ARRAY_SIZE(program));
-  for(int i = 0; i < VM_EXECUTION_LIMIT && !vm.halt; ++i) {
+void vm_save_program_to_file(
+    Instruction *program,
+    size_t programSize,
+    const char *filePath) {
+  FILE *file = fopen(filePath, "wb");
+  if (file == NULL) {
+    fprintf(
+        stderr,
+        "ERROR: Could not open file %s : %s\n",
+        filePath, strerror(errno));
+    exit(1);
+  }
+  
+  fwrite(program, sizeof(program[0]), programSize, file);
+  
+  if (ferror(file)) {
+    fprintf(
+        stderr,
+        "ERROR: Could not open file %s : %s\n",
+        filePath, strerror(errno));
+    exit(1);
+  }
+  
+  fclose(file);
+}
 
-    printf("%s\n",
-           instruction_type_as_cstr(program[vm.instructionPointer].type));
+VM vm = {0};
+Instruction program[] = {
+    MAKE_INSTRUCTION_PUSH(0),
+    MAKE_INSTRUCTION_PUSH(1),
+    MAKE_INSTRUCTION_DUPLICATE(1),
+    MAKE_INSTRUCTION_DUPLICATE(1),
+    MAKE_INSTRUCTION_PLUS(),
+    MAKE_INSTRUCTION_JUMP(2),
+};
+
+int main() {
+  vm_load_program_from_file(&vm, "fibonacci.vm");
+  vm_dump_stack(stdout, &vm);
+  for(int i = 0; i < VM_EXECUTION_LIMIT && !vm.halt; ++i) {
+    printf("%s %ld\n",
+           instruction_type_as_cstr(program[vm.instructionPointer].type),
+           program[vm.instructionPointer].operand);
     Trap trap = vm_execute_instruction(&vm);
     vm_dump_stack(stdout, &vm);
     
