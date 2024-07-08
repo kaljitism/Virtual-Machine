@@ -4,7 +4,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <stdint.h>
+
 #include <assert.h>
 #include <string.h>
 
@@ -49,6 +49,8 @@ typedef enum {
   INSTRUCTION_MULTIPLY,
   INSTRUCTION_DIVIDE,
   INSTRUCTION_JUMP,
+  INSTRUCTION_JUMP_IF, // impl
+  INSTRUCTION_EQUALITY, // impl
   INSTRUCTION_HALT,
 } InstructionType;
 
@@ -66,6 +68,10 @@ const char *instruction_type_as_cstr(InstructionType type) {
       return "INSTRUCTION_DIVIDE";
     case INSTRUCTION_JUMP:
       return "INSTRUCTION_JUMP";
+    case INSTRUCTION_JUMP_IF:
+      return "INSTRUCTION_JUMP_IF";
+    case INSTRUCTION_EQUALITY:
+      return "INSTRUCTION_EQUALITY";
     case INSTRUCTION_HALT:
       return "INSTRUCTION_HALT";
     default:
@@ -159,10 +165,27 @@ Trap vm_execute_instruction(VM *vm) {
       vm->instructionPointer = instruction.operand;
       break;
     
+    case INSTRUCTION_JUMP_IF:
+      if (vm->stackSize < 1) return TRAP_STACK_UNDERFLOW;
+      if (vm->stack[vm->stackSize - 1] == 1) {
+        vm->stackSize -= 1;
+        vm->instructionPointer = instruction.operand;
+      }
+      
+      break;
+    
     case INSTRUCTION_HALT:
       vm->halt = 1;
       break;
-    
+      
+    case INSTRUCTION_EQUALITY:
+      if (vm->stackSize < 2) return TRAP_STACK_UNDERFLOW;
+      vm->stack[vm->stackSize - 2] = vm->stack[vm->stackSize - 1] ==
+          vm->stack[vm->stackSize - 2];
+      vm->stackSize -= 1;
+      vm->instructionPointer += 1;
+      break;
+      
     default:
       return TRAP_ILLEGAL_INSTRUCTION;
   }
