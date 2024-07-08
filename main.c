@@ -52,6 +52,7 @@ typedef enum {
   INSTRUCTION_JUMP_IF, // impl
   INSTRUCTION_EQUALITY, // impl
   INSTRUCTION_HALT,
+  INSTRUCTION_PRINT_DEBUG, // impl
 } InstructionType;
 
 const char *instruction_type_as_cstr(InstructionType type) {
@@ -74,6 +75,8 @@ const char *instruction_type_as_cstr(InstructionType type) {
       return "INSTRUCTION_EQUALITY";
     case INSTRUCTION_HALT:
       return "INSTRUCTION_HALT";
+    case  INSTRUCTION_PRINT_DEBUG:
+      return " INSTRUCTION_PRINT_DEBUG";
     default:
       assert(0 && "instruction_type_as_cstr: Unreachable");
   }
@@ -171,7 +174,6 @@ Trap vm_execute_instruction(VM *vm) {
         vm->stackSize -= 1;
         vm->instructionPointer = instruction.operand;
       }
-      
       break;
     
     case INSTRUCTION_HALT:
@@ -184,6 +186,14 @@ Trap vm_execute_instruction(VM *vm) {
           vm->stack[vm->stackSize - 2];
       vm->stackSize -= 1;
       vm->instructionPointer += 1;
+      break;
+      
+    case INSTRUCTION_PRINT_DEBUG:
+      if (vm->stackSize < 1) return TRAP_STACK_UNDERFLOW;
+      printf("%ld\n", vm->stack[vm->stackSize - 1]);
+      vm->stackSize -= 1;
+      vm->instructionPointer += 1;
+      
       break;
       
     default:
