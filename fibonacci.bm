@@ -1,0 +1,6 @@
+push(0);
+push(0);
+duplicate(1);
+duplicate(1);
+plus();
+jump();
