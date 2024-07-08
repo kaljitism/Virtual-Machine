@@ -4,6 +4,7 @@
 #include <assert.h>
 #include <string.h>
 #include <errno.h>
+#include <ctype.h>
 
 #define ARRAY_SIZE(xs) (sizeof(xs) / sizeof((xs)[0]))
 #define VM_STACK_CAPACITY 1024
@@ -43,6 +44,7 @@ const char *trap_as_cstr(Trap trap) {
 }
 
 typedef enum {
+  INSTRUCTION_NOPE = 0,
   INSTRUCTION_PUSH,
   INSTRUCTION_DUPLICATE,
   INSTRUCTION_PLUS,
@@ -58,6 +60,8 @@ typedef enum {
 
 const char *instruction_type_as_cstr(InstructionType type) {
   switch (type) {
+    case INSTRUCTION_NOPE:
+      return "INSTRUCTION_NOPE";
     case INSTRUCTION_PUSH:
       return "INSTRUCTION_PUSH";
     case INSTRUCTION_PLUS:
@@ -103,6 +107,7 @@ typedef struct {
   int halt;
 } VM;
 
+#define MAKE_INSTRUCTION_NOPE() {}
 #define MAKE_INSTRUCTION_PUSH(value) {.type = INSTRUCTION_PUSH, .operand = (value)}
 #define MAKE_INSTRUCTION_DUPLICATE(address) {.type = INSTRUCTION_DUPLICATE, \
 .operand = (address)}
@@ -132,6 +137,10 @@ Trap vm_execute_instruction(VM *vm) {
   Instruction instruction = vm->program[vm->instructionPointer];
   
   switch (instruction.type) {
+    
+    case INSTRUCTION_NOPE:
+      vm->instructionPointer += 1;
+      break;
     
     case INSTRUCTION_PUSH:
       if (vm->stackSize >= VM_STACK_CAPACITY) return TRAP_STACK_OVERFLOW;
@@ -275,7 +284,7 @@ void vm_load_program_from_file(VM *vm, const char *filePath) {
   
   assert(currentPosition % sizeof(vm->program[0]) == 0);
   assert((size_t) currentPosition <= VM_PROGRAM_CAPACITY * sizeof
-  (vm->program[0]));
+      (vm->program[0]));
   
   if (fseek(file, 0, SEEK_SET) < 0) {
     fprintf(
@@ -286,8 +295,8 @@ void vm_load_program_from_file(VM *vm, const char *filePath) {
   }
   
   vm->programSize = fread(vm->program, sizeof(vm->program[0]), currentPosition
-  / sizeof
-  (vm->program[0]), file);
+                                                               / sizeof
+                                                                   (vm->program[0]), file);
   if (ferror(file)) {
     fprintf(
         stderr,
@@ -324,29 +333,74 @@ void vm_save_program_to_file(
   fclose(file);
 }
 
-size_t vm_translate_assembly(
-    char *sourceCode,
-    size_t sourceSize,
+
+typedef struct {
+  size_t count;
+  const char *data;
+} StringView;
+
+StringView cstr_as_stringView(const char *cstr) {
+  return (StringView) {
+    .count = strlen(cstr),
+    .data = cstr,
+  };
+}
+
+StringView stringView_trim_left(StringView stringView) {
+  assert(0 && "SV_TRIM_LEFT: NOT IMPLEMENTED");
+}
+
+StringView stringView_trim_right(StringView stringView) {
+  assert(0 && "SV_TRIM_RIGHT: NOT IMPLEMENTED");
+}
+
+
+StringView stringView_chop_by_delimeter(StringView *stringView, char
+delimeter) {
+  assert(0 && "SV_CHOP_BY_DELIMETER: NOT IMPLEMENTED");
+}
+
+int stringView_equal(StringView x, StringView y) {
+  assert(0 && "SV_EQUAL: NOT IMPLEMENTED");
+}
+
+int stringView_toInteger(StringView line) {
+  assert(0 && "SV_CHOP_INTEGER: NOT IMPLEMENTED");
+}
+
+Instruction vm_translate_line(StringView line) {
+ line = stringView_trim_left(line);
+ StringView instructionName = stringView_chop_by_delimeter(
+     &line,
+     ' ');
+ 
+ if (stringView_equal(instructionName, cstr_as_stringView("push"))) {
+   line = stringView_trim_left(line);
+     int operand = stringView_toInteger(line);
+     return (Instruction) {.type = INSTRUCTION_PUSH, .operand = operand};
+ } else {
+   fprintf(stderr, "ERROR: `%*.s` is not a number", (int) instructionName.count,
+           instructionName.data);
+   exit(1);
+ }
+}
+
+size_t vm_translate_source(
+    StringView sourceCode,
     Instruction *program,
     size_t programCapacity) {
-  while(sourceSize > 0) {
-    char *end = memchr(sourceCode, '\n', sourceSize);
-    if (end != NULL) {
-      size_t size = end - sourceCode;
-      printf("#%.*s#\n", (int) size, sourceCode);
-      sourceCode = end + 1;
-      sourceSize -= size + 1;
-    } else {
-      printf("#%.*s#", (int) sourceSize, sourceCode);
-      sourceCode = end;
-      sourceSize = 0;
-    }
+  while(sourceCode.count > 0) {
+    StringView line = stringView_chop_by_delimeter(
+        &sourceCode,
+        '\n');
+    printf("#%.*s#\n", (int) line.count, line.data);
   }
   return 0;
 }
 
+
 VM vm = {0};
-const char *sourceCode =
+char *sourceCode =
     "push 0\n"
     "push 1\n"
     "duplicate 1\n"
@@ -365,10 +419,9 @@ Instruction program[] = {
 
 
 int main(void) {
-  vm.programSize = vm_translate_assembly(sourceCode,
-                        strlen(sourceCode),
-                        vm.program,
-                        VM_PROGRAM_CAPACITY);
+  vm.programSize = vm_translate_source(cstr_as_stringView(sourceCode),
+                                       vm.program,
+                                       VM_PROGRAM_CAPACITY);
   
   return 0;
 }
