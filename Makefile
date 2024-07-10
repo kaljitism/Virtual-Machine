@@ -14,7 +14,7 @@ vmi: ./src/vmi.c ./src/vm.c
 examples: ./examples/fibonacci.vm ./examples/test.vm
 
 ./examples/fibonacci.vm: ./examples/fibonacci.evasm
-	./evasm ./examples/fibonacci.evasm ./examples/fibonacci.vm:
+	./evasm ./examples/fibonacci.evasm ./examples/fibonacci.vm
 
 ./examples/test.vm: ./examples/test.evasm
-	./evasm ./examples/test.evasm ./examples/test.vm:
+	./evasm ./examples/test.evasm ./examples/test.vm
