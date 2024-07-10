@@ -7,5 +7,5 @@ Virtual Machine for [EBISP](https://github.com/tsoding/ebisp)
 ```console
 >> make all
 >> make examples
->> ./vmi ./examples/*.vm
+>> ./vmi ./examples/<whatever-example-you-compiled>.vm
 ```
